@@ -36,7 +36,7 @@ spec:
     spec:
       containers:
       - name: nodejs-app
-        image: 767398010518.dkr.ecr.eu-west-3.amazonaws.com/nodejs-ecr:latest # Replace with your actual image
+        image: AWS-ACCOUNT-ID.dkr.ecr.eu-west-3.amazonaws.com/nodejs-ecr:latest # Replace with your actual image
         ports:
         - containerPort: 3000
         # 3. Environment Variables for Node.js Tracer (MUST be set for tagging)
