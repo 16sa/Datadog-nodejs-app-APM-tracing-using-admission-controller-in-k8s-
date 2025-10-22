@@ -1,0 +1,41 @@
+datadog:
+  # ----------------------------------------------
+  # 1. CORE CONFIGURATION
+  # ----------------------------------------------
+  site: datadoghq.eu
+  apiKeyExistingSecret: datadog-secret # The K8s secret containing your Datadog API key
+  clusterName: eks2
+  # ----------------------------------------------
+  # 2. APM TRACING CONFIGURATION
+  # ----------------------------------------------
+  agents:
+  # Ensure the APM/Trace Agent component is enabled
+    apm:
+      enabled: true              # Enable APM (traces)
+      socketEnabled: true
+      portEnabled: true
+    processAgent:
+      enabled: false             # Optional: enable if you want process metrics
+
+  # ----------------------------------------------
+  # 3. LOGS & OTHER FEATURES (DISABLED)
+  # ----------------------------------------------
+  #  Explicitly disable log collection
+  logs:
+    enabled: false
+
+  # Disable Live Container Collection, which is not strictly necessary for APM
+  containerCollection:
+    enabled: false
+
+  # ----------------------------------------------
+  # 4. CLUSTER AGENT & LIBRARY INJECTION (RECOMMENDED)
+  # ----------------------------------------------
+  # The Cluster Agent handles cluster-level tasks and the Admission Controller.
+clusterAgent:
+  enabled: true
+  admissionController:
+    enabled: true              # Enable Datadog Admission Controller
+    mutateUnlabelled: true
+    mutatingWebhook:
+      enabled: true

@@ -1,0 +1,58 @@
+# deployment.yaml
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nodejs-app
+  # 1. Add Unified Service Tagging labels to the Deployment
+  labels:
+    app: nodejs-app
+    tags.datadoghq.com/env: "production"
+    tags.datadoghq.com/service: "nodejs-app"
+    tags.datadoghq.com/version: "1.0.0"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nodejs-app
+  template:
+    metadata:
+      # 2. Add Unified Service Tagging labels to the Pod Template
+      labels:
+        app: nodejs-app
+        tags.datadoghq.com/env: "production"
+        tags.datadoghq.com/service: "nodejs-app"
+        tags.datadoghq.com/version: "1.0.0"
+      # 3. Add Datadog Admission Controller Annotations
+      annotations:
+        admission.datadoghq.com/enabled: "true" # Enable the Admission Controller
+        admission.datadoghq.com/env: "true"
+        admission.datadoghq.com/js-lib.version: v5.72.0 # Keep this to ensure library injection
+        # Use the shell command to execute the tracer initialization
+        admission.datadoghq.com/nodejs.tracer.args: "sh -c 'NODE_OPTIONS=\"-r dd-trace/init\" node index.js'"
+        # This guarantees the tracer is fully initialized before the app starts listening, so all HTTP requests are traced automatically.
+        admission.datadoghq.com/nodejs.preload: "true"
+
+    spec:
+      containers:
+      - name: nodejs-app
+        image: 767398010518.dkr.ecr.eu-west-3.amazonaws.com/nodejs-ecr:latest # Replace with your actual image
+        ports:
+        - containerPort: 3000
+        # 3. Environment Variables for Node.js Tracer (MUST be set for tagging)
+        env:
+          - name: DD_AGENT_HOST
+            valueFrom:
+              fieldRef:
+                fieldPath: status.hostIP
+          - name: DD_LOGS_INJECTION
+            value: "true"
+          - name: DD_TRACE_ENABLED
+            value: "true"
+        # Set the standard Unified Service Tagging variables
+          - name: DD_ENV
+            value: "production"
+          - name: DD_SERVICE
+            value: "nodejs-app"
+          - name: DD_VERSION
+            value: "1.0.0"
