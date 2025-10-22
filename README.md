@@ -1,5 +1,3 @@
-***Docker 
-apt install docker.io
 ***A Datadog account and organization API key (API and Application Keys)
 ***Launch EC2 Instance
 Instance Type: t2.medium
@@ -8,12 +6,14 @@ AMIs: Amazon Linux
 Go to IAM -> Create role -> Select EC2 -> Give Full admin access "AdministratorAccess" -> Name the role EC2-ROLE-FOR-ACCESSING-EKS-CLUSTER
 ***Attach the IAM role having full access
 Go to EC2 -> Click on Actions on the left hand side -> Security -> Modify IAM role
+***Docker 
+yum install docker
 ***Install aws iam authenticator
 curl -o aws-iam-authenticator https://amazon-eks.s3.us-west-2.amazonaws.com/1.15.10/2020-02-22/bin/linux/amd64/aws-iam-authenticator
 chmod +x ./aws-iam-authenticator
 sudo mv ./aws-iam-authenticator /usr/local/bin
 Test that the aws-iam-authenticator binary works: aws-iam-authenticator help
-***Install AWS CLI
+***Install AWS CLI (Not needed for amazon linux distribution only for other Linux distribution)
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
 apt install unzip
 unzip awscliv2.zip
@@ -85,19 +85,20 @@ nodejs-app/
 └── index.js
 
 *** Install npm  and needed library
-apt install npm
+yum install npm
 cd nodejs-app
 npm install
 ***Build and upload the application image
 Amazon ECR: a registry for EKS images
-- Authenticate with ECR:
-aws ecr get-login-password --region eu-west-3 | docker login --username AWS --password-stdin AWS-account-id.dkr.ecr.eu-west-3.amazonaws.com
+
 - Create ecr repositories:
 aws ecr describe-repositories --repository-names nodejs-ecr || aws ecr create-repository --repository-name nodejs-ecr
 - Build a Docker image for the sample app:
 docker build -t nodejs-app:latest .
 - Tag the container with the ECR destination:
 docker tag nodejs-app:latest $ECR_REPOSITORY_URI /nodejs-ecr:latest
+- Authenticate with ECR:
+aws ecr get-login-password --region eu-west-3 | docker login --username AWS --password-stdin AWS-ACCOUNT-ID.dkr.ecr.eu-west-3.amazonaws.com
 
 - Upload the container to the ECR registry:
 docker push $ECR_REPOSITORY_URI /nodejs-ecr:latest
@@ -123,12 +124,11 @@ Exec into one of the POD and you will be able to see ENV injected by cluster adm
 kubectl exec -it <new-nodejs-pod> -- printenv | grep DD_
 
 - check if the tracer is loaded:
-kubectl exec -it nodejs-app-66c86b75c5-fkxl2 – sh
+kubectl exec -it POD_NAME – sh
 node -r dd-trace/init -e "const tracer = require('dd-trace'); console.log('Tracer loaded', tracer._tracer._enabled)"
 
 *** Verify Metrics in Datadog APM
 1.	Generate traffic to the pod with “kubectl port-forward pod/<POD_NAME> <LOCAL_PORT:POD_PORT>
-kubectl port-forward pod/ nodejs-app-66c86b75c5-fkxl2 3000:3000
 the execute this command in another terminal many times: curl -sS http://localhost:3000/
 In wait 5-10 min and you will be able to see data in APM section in datadog.
 2.	Open the Datadog web interface.
