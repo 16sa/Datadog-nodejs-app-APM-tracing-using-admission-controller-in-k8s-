@@ -3,7 +3,7 @@ apt install docker.io
 ***A Datadog account and organization API key (API and Application Keys)
 ***Launch EC2 Instance
 Instance Type: t2.medium
-AMIs: Ubuntu
+AMIs: Amazon Linux
 ***Create the IAM role having full access
 Go to IAM -> Create role -> Select EC2 -> Give Full admin access "AdministratorAccess" -> Name the role EC2-ROLE-FOR-ACCESSING-EKS-CLUSTER
 ***Attach the IAM role having full access
