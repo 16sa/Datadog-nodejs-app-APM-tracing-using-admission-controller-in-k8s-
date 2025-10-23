@@ -1,0 +1,121 @@
+datadog:
+  clusterChecks:
+    enabled: true
+ 
+  # DBM credentials for environment variable resolution
+  env:
+    - name: DD_POSTGRES_USERNAME
+      valueFrom:
+        secretKeyRef:
+          name: datadog-postgres-creds
+          key: DD_POSTGRES_USERNAME
+    - name: DD_POSTGRES_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: datadog-postgres-creds
+          key: DD_POSTGRES_PASSWORD
+
+  # CORE CONFIGURATION
+  site: datadoghq.eu
+  apiKeyExistingSecret: datadog-secret
+  clusterName: eks2
+
+  # APM TRACING CONFIGURATION
+  agents:
+    apm:
+      enabled: true
+      socketEnabled: true
+      portEnabled: true
+    processAgent:
+      enabled: false
+
+    # Inject RDS CA certificate
+    volumes:
+      - name: rds-cert
+        secret:
+          secretName: datadog-rds-cert
+          items:
+            - key: rds-ca-root.pem
+              path: rds-ca-root.pem
+
+    volumeMounts:
+      - name: rds-cert
+        mountPath: /opt/datadog/ssl/
+        readOnly: true
+
+    # Load Postgres credentials
+    envFrom:
+      - secretRef:
+          name: datadog-postgres-creds
+
+  # LOGS & OTHER FEATURES
+  logs:
+    enabled: false
+  containerCollection:
+    enabled: false
+
+clusterAgent:
+  enabled: true
+  admissionController:
+    enabled: true
+    mutateUnlabelled: true
+    mutatingWebhook:
+      enabled: true
+
+  # Inject RDS CA certificate
+  volumes:
+    - name: rds-cert-agentcluster
+      secret:
+        secretName: datadog-rds-cert
+        items:
+          - key: rds-ca-root.pem
+            path: rds-ca-root.pem
+
+  volumeMounts:
+    - name: rds-cert-agentcluster
+      mountPath: /opt/datadog/ssl/
+      readOnly: true
+
+  # DBM check configuration
+  confd:
+    kubernetes_apiserver.yaml: |-
+      init_config: {}
+      instances:
+        - filtering_enabled: false
+          unbundle_events: false
+    postgres.yaml: |-
+      cluster_check: true
+      init_config:
+        python_bindings:
+          - psycopg
+      instances:
+        - dbm: true
+          host: database-1.cbaym4asos1l.eu-west-3.rds.amazonaws.com
+          port: 5432
+          username: %%env_var::DD_POSTGRES_USERNAME%%
+          password: %%env_var::DD_POSTGRES_PASSWORD%%
+          dbname: postgres
+          ssl: verify-ca
+          ssl_root_cert: /opt/datadog/ssl/rds-ca-root.pem
+          aws:
+            instance_endpoint: database-1.cbaym4asos1l.eu-west-3.rds.amazonaws.com
+            region: eu-west-3
+          tags:
+            - "dbinstanceidentifier:database-1"
+
+clusterChecksRunner:
+  enabled: true
+
+  # Inject RDS CA certificate
+  volumes:
+    - name: rds-cert-runner
+      secret:
+        secretName: datadog-rds-cert
+        items:
+          - key: rds-ca-root.pem
+            path: rds-ca-root.pem
+
+  volumeMounts:
+    - name: rds-cert-runner
+      mountPath: /opt/datadog/ssl/
+      readOnly: true
