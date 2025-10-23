@@ -1,0 +1,57 @@
+
+Setting Up Database Monitoring for Amazon RDS managed Postgres
+
+https://docs.datadoghq.com/database_monitoring/setup_postgres/rds/?tab=kubernetes#configure-postgres-settings
+
+*** continue from our current setup, where:
+
+we already have Datadog integrated with AWS (CloudFormation method).
+
+The Datadog Agent is installed on our EKS cluster via Helm (with the datadog-values.yaml).
+
+we already have APM (tracing) working for our  Node.js app through the admission controller.
+
+STEP 1 — 
+create a custom parameters group so that we can update db parameters
+Create the RDS PostgreSQL instance on aws with dedicated SG, attach the created parameters group, attach the same vpc as worker node to overcome 
+connectivity issue, public as , add strong password for postgres db user
+
+Configure Postgres settings in parameters group according to documentation
+
+
+
+The Datadog Agent pods inside EKS  to collect PostgreSQL metrics → must be able to reach → RDS endpoint:5432 over the private AWS network.
+That’s why the RDS security group must allow traffic from the EKS worker node security group.
+This tells the RDS security group, "Accept connections on port 5432 from any private IP address within the EKS cluster's VPC."
+Allow PostgreSQL (TCP/5432) from sg-eks-nodes (source: security group)
+
+
+STEP2: In order to grant the Datadog Agent access to the database, we have to create a jump host instance on same vpc as 
+database to be able to access and configure it. it is an aws managed database so not possible to access
+it directly from aws.
+Test access to db from ec2 with this command: psql -h db_endpoint --port 5432 -U datadog -d postgres
+Then to establish conx between db and ec2, go to db and select "setup ec2 connection option" and a sg from ec2-rds and from rds-ec2 
+will be created
+run db command mentionned in the official doc. you will be prompted to give strong password to datadog user
+in verify commands, put db endpoint instead of localhost
+
+STEP3: Install and configure the Agent
+
+- We need to enable ssl for rds since we have this parameter in parameters group 	rds.force_ssl = 1
+wget https://truststore.pki.rds.amazonaws.com/eu-west-3/eu-west-3-bundle.pem
+kubectl create secret generic datadog-rds-cert   --from-file=rds-ca-root.pem=./eu-west-3-bundle.pem
+
+- Create secrets for database datadog credential for not  to be displayed as plain text
+
+kubectl create secret generic datadog-postgres-creds \
+  --from-literal=DD_POSTGRES_USERNAME=<DB_USER> \
+  --from-literal=DD_POSTGRES_PASSWORD=<DB_PASSWORD>
+
+From the previous instance that we use to access eks cluster, modify datadog-value.yaml file and run this command:
+
+helm upgrade --install datadog-agent datadog/datadog -f datadog-values.yaml -n datadog 
+
+Check pod status with this command:
+kubectl -n datadog exec -it pod_name  -- agent status
+
+Check postgres monitoring metrics on datadog dashboard
