@@ -29,6 +29,7 @@ Allow PostgreSQL (TCP/5432) from sg-eks-nodes (source: security group)
 STEP2: In order to grant the Datadog Agent access to the database, we have to create a jump host instance on same vpc as 
 database to be able to access and configure it. it is an aws managed database so not possible to access
 it directly from aws.
+on ec2 created node (jump_host) run: dnf install postgresql17
 Test access to db from ec2 with this command: psql -h db_endpoint --port 5432 -U datadog -d postgres
 Then to establish conx between db and ec2, go to db and select "setup ec2 connection option" and a sg from ec2-rds and from rds-ec2 
 will be created

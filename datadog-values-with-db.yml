@@ -90,7 +90,7 @@ clusterAgent:
           - psycopg
       instances:
         - dbm: true
-          host: database-1.cbaym4asos1l.eu-west-3.rds.amazonaws.com
+          host: database-endpoint
           port: 5432
           username: %%env_var::DD_POSTGRES_USERNAME%%
           password: %%env_var::DD_POSTGRES_PASSWORD%%
@@ -98,10 +98,10 @@ clusterAgent:
           ssl: verify-ca
           ssl_root_cert: /opt/datadog/ssl/rds-ca-root.pem
           aws:
-            instance_endpoint: database-1.cbaym4asos1l.eu-west-3.rds.amazonaws.com
+            instance_endpoint: database-endpoint
             region: eu-west-3
           tags:
-            - "dbinstanceidentifier:database-1"
+            - "dbinstanceidentifier:database-identifier"
 
 clusterChecksRunner:
   enabled: true
